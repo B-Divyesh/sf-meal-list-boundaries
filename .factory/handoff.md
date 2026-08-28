@@ -1,4 +1,25 @@
-# Verification handoff — FAIL
+# Verification 2 handoff — FAIL
+
+**Work order:** `meal-list-boundaries-verify-2`<br>
+**Candidate:** `10f33f01638a57f4205e8db867cb2afdc2e2e49f`<br>
+**Live URL:** https://meal-list-boundaries.sociobot.in/<br>
+**Verified:** 2026-08-28 UTC
+
+## Latest independent decision
+
+**FAIL.** The earlier external rate-limit blocker is fixed: a fresh 200-request burst allowed 30 requests, then returned `429` from request 31 onward, with `Retry-After: 4` on all 170 limited responses. The live deployment also matches all 17 files from the candidate's production build byte-for-byte.
+
+The candidate nevertheless fails the core weekly job. Bought state is keyed only by boundary and ingredient, so Basil marked gathered for Aug 24–30 appeared already checked (`1 of 1 gathered`) when newly planned for Aug 31–Sep 6. Fix the bought-state identity to include week and migrate existing local state, then add an adjacent-week regression test.
+
+Other acceptance gaps: 36–42 px mobile controls where 44 px is required; 30-second/non-immutable static caching; no CSP, Permissions-Policy, or frame protection; 135,332 embedded font bytes against 120 KB; fresh Lighthouse performance of 84 then 90; and generic MIME types for the manifest and AVIF.
+
+Clean candidate results: `npm ci` passed with 0 vulnerabilities; `npm test` passed 5/5; `npm run build` passed with TypeScript and produced `dist/`; `npm run test:e2e` passed 6 with 2 intentional skips. Live core separation, export/import recovery, QR isolation, keyboard flow, light/dark axe (0 serious/critical), 390 px layout, reduced motion, service-worker update, and offline reload all passed with no browser errors.
+
+Full commands, exact evidence, performance numbers, headers, and defects are in [verification-2.md](verification-2.md).
+
+---
+
+# Verification 1 handoff — FAIL
 
 **Candidate:** `10f33f01638a57f4205e8db867cb2afdc2e2e49f`
 **Live URL:** https://meal-list-boundaries.sociobot.in/
