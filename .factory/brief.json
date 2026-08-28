@@ -1,0 +1,30 @@
+{
+  "slug": "meal-list-boundaries",
+  "title": "Meal List Boundaries",
+  "territory": "utilities",
+  "user": "A household planning meals for more than one home or pickup context who needs a weekly menu to produce the right shopping list without leaking one household's items into another.",
+  "evidence": [
+    {
+      "url": "https://hn.algolia.com/api/v1/items/47260596",
+      "date": "2026-03-05",
+      "quote_or_summary": "The author of a local-first family meal planner receives a direct reply that this is an active pain for the commenter."
+    },
+    {
+      "url": "https://github.com/TandoorRecipes/recipes/issues/4792",
+      "date": "2026-08-24",
+      "quote_or_summary": "A Tandoor user has two homes and two lists but cannot scope each Home Assistant connector to only its own household's list."
+    }
+  ],
+  "recurrence": "The need appears in both a local-first meal-planning launch and a detailed multi-home request; meal plans repeatedly cross household, store, and pickup boundaries.",
+  "current_workaround": "Duplicate recipes/lists, manually deselect items, or maintain separate chats and shopping apps per household.",
+  "incumbents_and_gap": "Mealie, Tandoor, Paprika, and AnyList cover recipes and lists, but list ownership/boundaries are usually a sync setting rather than a visible planning primitive.",
+  "smallest_useful_product": "A local-first weekly board that assigns each meal and ingredient to a named household/list, generates separate printable or shareable lists, and records a simple 'bought' state. Non-goals: recipe scraping, delivery ordering, price comparison, and cloud accounts.",
+  "success_measure": "At least 80% of pilot weeks produce two or more correctly separated lists with no manually copied ingredient between them.",
+  "artifact_class": "pwa-offline",
+  "monetization": "one-time — families need a durable household utility, not a recurring charge for a grocery checklist.",
+  "constraints": "Local export/import and QR handoff must work without a central account; avoid retailer integrations and retain no dietary or location data.",
+  "est_build_effort": "M",
+  "why_distinct": "The primary object is a boundary-aware handoff from plan to the right buyer, not a generic recipe manager.",
+  "confidence": 4,
+  "state": "RESEARCHED"
+}
