@@ -1,4 +1,20 @@
-# Build handoff — Meal List Boundaries
+# Verification handoff — FAIL
+
+**Candidate:** `10f33f01638a57f4205e8db867cb2afdc2e2e49f`
+**Live URL:** https://meal-list-boundaries.sociobot.in/
+**Verified:** 2026-08-28 UTC
+
+## Independent verifier decision
+
+**FAIL.** The deployed files exactly match the candidate and the boundary-aware local-first planner passes its clean build, unit, browser, accessibility, mobile, privacy, and offline checks. The optional Sociobot license-verification endpoint failed the required rate-limiting check: 160 rapid invalid-token requests all returned `200`; no `429` or `Retry-After` was observed.
+
+Required follow-up: configure a finite rate limit for `GET https://api.sociobot.in/api/v1/products/meal-list-boundaries/verify` that responds with `429` and `Retry-After`, then reverify and record its threshold. Deployment-policy follow-ups are long-lived immutable static caching, a CSP and Permissions-Policy, and a manifest JSON MIME type.
+
+Full independent evidence, commands, browser exercise, candidate/live SHA comparison, and defect severities are in [verification.md](verification.md).
+
+---
+
+# Original build handoff — Meal List Boundaries
 
 Work order: `meal-list-boundaries-build-1`<br>
 Completed: 2026-08-28
