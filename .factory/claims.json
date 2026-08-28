@@ -1,0 +1,23 @@
+[
+  {
+    "id": "demo-sandbox",
+    "claim": "Try the planner with sample data without saving it to your real planner",
+    "where": "landing action and demo banner",
+    "test": "npm run test:e2e -- --grep @claim:demo-sandbox",
+    "sandbox": "fresh browser context; open /demo; confirm sample meals; select Start for real; confirm the real planner is empty"
+  },
+  {
+    "id": "offline-reload",
+    "claim": "Reload the planner offline after the first visit",
+    "where": "README",
+    "test": "npm run test:e2e -- --grep @claim:offline-reload",
+    "sandbox": "fresh browser context; wait for the service worker; set the context offline; reload; assert the planner and offline state"
+  },
+  {
+    "id": "local-only-data",
+    "claim": "Meal and boundary data stay on your device",
+    "where": "footer, README, privacy page",
+    "test": "npm run test:e2e -- --grep @claim:local-only-data",
+    "sandbox": "fresh browser context; run a sample planning flow at /demo; intercept every HTTP request; assert every request is same-origin"
+  }
+]

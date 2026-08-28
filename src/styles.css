@@ -21,6 +21,22 @@
   font-synthesis: none;
 }
 
+@font-face {
+  font-family: "Alegreya Sans";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500 700;
+  src: url("@fontsource/alegreya-sans/files/alegreya-sans-latin-500-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("@fontsource/source-serif-4/files/source-serif-4-latin-400-normal.woff2") format("woff2");
+}
+
 :root[data-theme="dark"] {
   color-scheme: dark;
   --paper: #171c18;
@@ -89,6 +105,10 @@ a:hover { text-decoration-thickness: 2px; }
   align-items: center;
   gap: 16px;
 }
+.demo-banner { max-width: 1180px; margin: 0 auto 10px; padding: 9px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--warning); border-left-width: 5px; background: var(--surface); color: var(--ink); font-size: 14px; }
+.demo-banner > span:last-child { display: inline-flex; align-items: center; gap: 10px; }
+.demo-banner button { min-height: 44px; display: inline-flex; align-items: center; padding: 7px 10px; font-weight: 700; }
+.demo-banner button { border: 0; background: transparent; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .brand { color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; gap: 10px; font-size: 14px; line-height: .9; letter-spacing: .05em; text-transform: uppercase; }
 .brand svg { width: 35px; height: 35px; fill: none; stroke: var(--accent); stroke-width: 1.7; stroke-linecap: round; }
 .brand b { font-size: 16px; letter-spacing: .02em; }
@@ -105,6 +125,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 20px 64px; }
 h1, h2, h3, p { margin-top: 0; }
 h1 { margin-bottom: 20px; font: 400 clamp(2.1rem, 5vw, 3.4rem)/.98 var(--serif); letter-spacing: -.035em; max-width: 13ch; }
 .hero-copy > p:not(.eyebrow) { max-width: 52ch; color: var(--muted); font-size: 18px; line-height: 1.55; }
+.hero-actions { margin-top: 22px; }
 .hero-legend { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 30px; color: var(--muted); font-size: 14px; }
 .hero-legend span { display: flex; align-items: center; gap: 7px; }
 .hero-legend b { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid var(--rule); border-radius: 50%; color: var(--ink); }
@@ -139,7 +160,7 @@ h1 { margin-bottom: 20px; font: 400 clamp(2.1rem, 5vw, 3.4rem)/.98 var(--serif);
 .meal > span:not(.boundary-tag) { color: var(--muted); font-size: 13px; }
 .boundary-tag { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; padding: 3px 6px; border-radius: 3px; background: var(--boundary); color: #fff; font-size: 11px; line-height: 1.3; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
 .row-actions { display: flex; gap: 4px; margin-top: 7px; }
-.row-actions button { min-height: 36px; padding: 5px 7px; font-size: 12px; border-color: transparent; background: transparent; }
+.row-actions button { min-height: 44px; padding: 7px; font-size: 12px; border-color: transparent; background: transparent; }
 .danger-text { color: var(--danger); }
 .empty-day { width: 100%; border: 1px dashed var(--rule); background: transparent; color: var(--muted); font-weight: 500; }
 
@@ -190,8 +211,8 @@ input::placeholder, textarea::placeholder { color: color-mix(in srgb, var(--mute
 .boundary-settings li { display: flex; align-items: center; gap: 9px; padding: 8px; border: 1px solid var(--rule); border-left: 5px solid var(--boundary); border-radius: 6px; }
 .boundary-settings li > span { flex: 0 0 28px; text-align: center; font-size: 20px; }
 .boundary-settings form { flex: 1; display: grid; grid-template-columns: minmax(100px, 1fr) auto auto; gap: 7px; align-items: center; }
-.boundary-settings input { min-height: 42px; }
-.boundary-settings button { min-height: 42px; padding: 7px 10px; }
+.boundary-settings input { min-height: 44px; }
+.boundary-settings button { min-height: 44px; padding: 7px 10px; }
 .inline-form, .license-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; margin-top: 16px; }
 .inline-form label, .license-form label { margin: 0; }
 .button-row { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -205,10 +226,12 @@ input::placeholder, textarea::placeholder { color: color-mix(in srgb, var(--mute
 
 .toast-region { position: fixed; z-index: 50; bottom: max(18px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: min(500px, calc(100% - 24px)); pointer-events: none; }
 .toast { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 16px; background: var(--ink); color: var(--paper); border: 1px solid var(--paper); border-radius: 8px; box-shadow: 0 8px 30px rgba(0,0,0,.28); pointer-events: auto; animation: toast-in 180ms ease both; }
-.toast button { min-height: 36px; padding: 5px 10px; color: inherit; border-color: currentColor; background: transparent; }
+.toast button { min-height: 44px; padding: 7px 10px; color: inherit; border-color: currentColor; background: transparent; }
 footer { max-width: 1180px; margin: 0 auto; padding: 28px 20px max(32px, env(safe-area-inset-bottom)); border-top: 1px solid var(--rule); display: grid; grid-template-columns: 1fr auto; gap: 8px 30px; color: var(--muted); font-size: 14px; }
 footer p { margin: 0; }
 footer nav { display: flex; gap: 18px; }
+footer nav a, .brand { min-height: 44px; padding-block: 4px; }
+footer nav a { display: inline-flex; align-items: center; }
 .provenance { grid-column: 1 / -1; font-size: 12px; }
 
 .shared-main { max-width: 720px; padding-top: 60px; }
@@ -218,6 +241,13 @@ footer nav { display: flex; gap: 18px; }
 
 @keyframes settle { from { opacity: 0; transform: translateY(4px); } }
 @keyframes toast-in { from { opacity: 0; transform: translateY(10px); } }
+
+.boundary-color-0 { --boundary: #2f684d; }
+.boundary-color-1 { --boundary: #7a4939; }
+.boundary-color-2 { --boundary: #365d73; }
+.boundary-color-3 { --boundary: #795d22; }
+.boundary-color-4 { --boundary: #6a4672; }
+.boundary-color-5 { --boundary: #3f6661; }
 
 @media (max-width: 920px) {
   .hero { grid-template-columns: 1fr 1fr; min-height: 390px; }
@@ -230,6 +260,7 @@ footer nav { display: flex; gap: 18px; }
 
 @media (max-width: 680px) {
   .site-header { padding-left: 16px; padding-right: 16px; }
+  .demo-banner { margin-bottom: 4px; padding: 8px 16px; align-items: flex-start; flex-direction: column; }
   .connection { font-size: 0; }
   .connection i { width: 10px; height: 10px; }
   main { padding-left: 14px; padding-right: 14px; }

@@ -1,8 +1,9 @@
-const CACHE = 'meal-list-boundaries-shell-v3';
+const CACHE = 'meal-list-boundaries-shell-v4';
 const ASSETS = [
   '/',
   '/index.html',
   '/offline.html',
+  '/offline.css',
   '/manifest.webmanifest',
   '/legal.css',
   '/robots.txt',
@@ -29,6 +30,13 @@ self.addEventListener('install', (event) => {
       .map((match) => match[1])
       .filter((path) => path.startsWith('/') && !path.startsWith('//'));
     await cache.addAll([...new Set(discovered)]);
+    const stylesheets = discovered.filter((path) => path.endsWith('.css'));
+    const fontAssets = (await Promise.all(stylesheets.map(async (path) => {
+      const stylesheet = await fetch(path);
+      const css = await stylesheet.text();
+      return [...css.matchAll(/url\((['"]?)(\/[^)'"?]+)\1\)/g)].map((match) => match[2]);
+    }))).flat();
+    await cache.addAll([...new Set(fontAssets)]);
   })());
 });
 
@@ -59,7 +67,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
+  event.respondWith(caches.match(event.request, { ignoreVary: true }).then((cached) => cached || fetch(event.request).then((response) => {
     if (response.ok) {
       const copy = response.clone();
       caches.open(CACHE).then((cache) => cache.put(event.request, copy));

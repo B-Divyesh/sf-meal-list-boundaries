@@ -1,84 +1,57 @@
-# Verification 2 handoff — FAIL
+# Repair handoff — Meal List Boundaries
 
-**Work order:** `meal-list-boundaries-verify-2`<br>
-**Candidate:** `10f33f01638a57f4205e8db867cb2afdc2e2e49f`<br>
-**Live URL:** https://meal-list-boundaries.sociobot.in/<br>
-**Verified:** 2026-08-28 UTC
+**Work order:** `meal-list-boundaries-repair-1`
+**Base verifier report:** `e0e4c847cd83582f9dd19ef653249dd192da7916` (candidate `10f33f01638a57f4205e8db867cb2afdc2e2e49f`)
+**Deployed URL:** <https://meal-list-boundaries.sociobot.in/>
+**Deployed:** 2026-08-28 UTC — Azure Static Web Apps deployment `658e691a-e4a2-446f-8a8f-3f1929775cdf`
 
-## Latest independent decision
+## Result
 
-**FAIL.** The earlier external rate-limit blocker is fixed: a fresh 200-request burst allowed 30 requests, then returned `429` from request 31 onward, with `Retry-After: 4` on all 170 limited responses. The live deployment also matches all 17 files from the candidate's production build byte-for-byte.
+All documented release blockers are repaired.
 
-The candidate nevertheless fails the core weekly job. Bought state is keyed only by boundary and ingredient, so Basil marked gathered for Aug 24–30 appeared already checked (`1 of 1 gathered`) when newly planned for Aug 31–Sep 6. Fix the bought-state identity to include week and migrate existing local state, then add an adjacent-week regression test.
-
-Other acceptance gaps: 36–42 px mobile controls where 44 px is required; 30-second/non-immutable static caching; no CSP, Permissions-Policy, or frame protection; 135,332 embedded font bytes against 120 KB; fresh Lighthouse performance of 84 then 90; and generic MIME types for the manifest and AVIF.
-
-Clean candidate results: `npm ci` passed with 0 vulnerabilities; `npm test` passed 5/5; `npm run build` passed with TypeScript and produced `dist/`; `npm run test:e2e` passed 6 with 2 intentional skips. Live core separation, export/import recovery, QR isolation, keyboard flow, light/dark axe (0 serious/critical), 390 px layout, reduced motion, service-worker update, and offline reload all passed with no browser errors.
-
-Full commands, exact evidence, performance numbers, headers, and defects are in [verification-2.md](verification-2.md).
-
----
-
-# Verification 1 handoff — FAIL
-
-**Candidate:** `10f33f01638a57f4205e8db867cb2afdc2e2e49f`
-**Live URL:** https://meal-list-boundaries.sociobot.in/
-**Verified:** 2026-08-28 UTC
-
-## Independent verifier decision
-
-**FAIL.** The deployed files exactly match the candidate and the boundary-aware local-first planner passes its clean build, unit, browser, accessibility, mobile, privacy, and offline checks. The optional Sociobot license-verification endpoint failed the required rate-limiting check: 160 rapid invalid-token requests all returned `200`; no `429` or `Retry-After` was observed.
-
-Required follow-up: configure a finite rate limit for `GET https://api.sociobot.in/api/v1/products/meal-list-boundaries/verify` that responds with `429` and `Retry-After`, then reverify and record its threshold. Deployment-policy follow-ups are long-lived immutable static caching, a CSP and Permissions-Policy, and a manifest JSON MIME type.
-
-Full independent evidence, commands, browser exercise, candidate/live SHA comparison, and defect severities are in [verification.md](verification.md).
-
----
-
-# Original build handoff — Meal List Boundaries
-
-Work order: `meal-list-boundaries-build-1`<br>
-Completed: 2026-08-28
-
-## What shipped
-
-- A complete Monday–Sunday local-first planner with week navigation, meal editing/removal, named boundaries, ingredient entry, and persistent bought state.
-- Boundary-safe list generation: normalized duplicate ingredient lines combine only inside the same boundary; they are never merged across boundaries.
-- Individual boundary handoff through copyable text, a self-contained account-free URL, QR code, CSV, and print. A recipient’s shared checklist keeps its own bought state locally.
-- IndexedDB persistence plus versioned full JSON export/import. Import validates before a confirmed replacement.
-- Installable PWA manifest, 192/512 maskable icons, versioned app-shell service worker, update notice, network-aware status, offline fallback, and a tested cached offline reload.
-- Free tier with two complete boundaries. The optional `$12 one-time` Field Kit uses the Sociobot checkout/verify contract and adds unlimited boundaries plus reusable week templates. Incoming tokens are stored at `sb_license:meal-list-boundaries`, removed from the URL, verified no more than daily, and may be restored by paste. Free use never waits on verification.
-- Botanical field-guide visual system with light/dark treatments, 44px targets, clear focus states, reduced-motion handling, and an original generated hero plate. Production derivatives: AVIF 24/52 KB, WebP 41/97 KB, and JPEG fallback 121 KB. Prompt and provenance are in `.factory/design.md` and `assets/src/`.
-- Static privacy, terms, offline, robots, and sitemap documents; expanded README and MIT license.
+- Bought state is now keyed by `weekStart + boundary + normalized ingredient`. A version-1 local record migrates at load: an old tick is retained only if it can be assigned to exactly one planned week; ambiguous old ticks are reset rather than incorrectly carried into multiple weeks. Imports accept both v1 and v2 exports.
+- Added the exact adjacent-week regression in Vitest and Playwright: Basil checked in one week is unchecked when planned in the next week.
+- All meal Edit/Remove and boundary Save/Remove controls are at least 44 px high at 390 px; the brand and footer links have 44 px targets too.
+- Replaced the single-file build with external hashed JS/CSS/font assets. The build now ships only two WOFF2 assets (44,016 bytes total), not duplicated WOFF/WOFF2 payloads.
+- Added `staticwebapp.config.json`: strict CSP without inline script/style allowances, Permissions-Policy, frame protection, correct AVIF/manifest MIME types, immutable hashed asset caching, and update-safe HTML/service-worker caching.
+- Updated the worker to cache CORS-tagged external assets correctly (`ignoreVary`) and precache self-hosted fonts. Cache name is now `meal-list-boundaries-shell-v4`.
+- Added the required isolated `/demo` sample: Home/Cabin and four sample meals live under IndexedDB key `demo:planner`, with Reset demo and Start for real (which deletes demo data). Documentation is in `.factory/demo.md`; claim coverage is in `.factory/claims.json`.
 
 ## Verification
 
-Commands run from `/work/repo`:
+From a clean install in `/work/repo`:
 
-```bash
-npm test
-npm run build
-npm run test:e2e
+```text
+npm ci                         PASS — 130 packages, 0 vulnerabilities
+npm run lint                   PASS — TypeScript noEmit
+npm test                       PASS — 7 Vitest tests
+npm run build                  PASS — dist/index.html at root
+npm run test:e2e               PASS — 13 passed, 3 intentional project skips
 ```
 
-Results:
+Browser coverage used Chromium desktop and 390 × 844 mobile. It covers two-boundary separation, keyboard reachable dialogs and skip link, QR handoff, empty/error states, light/dark axe, touch targets, reduced motion, demo isolation, adjacent-week state isolation, and offline reload. The live `/demo` check found no browser errors, no horizontal overflow at 390 px, and zero serious/critical axe violations in both themes. First Tab reached **Skip to planner**.
 
-- Vitest: 5/5 passing (separation, merge-within-boundary, week isolation, handoff contents, import validation).
-- Playwright 1.58.2: 6 passing, 2 intentional project skips. Covered full two-boundary planning/list flow, bought-state refresh, QR-to-fresh-handoff, console errors, serious/critical axe scan, 390px overflow, and offline reload.
-- Production build: `dist/index.html` at the required root. Single-file cached app shell is 255.0 KB raw / 161.7 KB gzip. Application JavaScript before inlining is about 56.5 KB and CSS 23.8 KB; both are inside the 200 KB / 50 KB budgets.
-- Lighthouse mobile against the production preview: Performance **93**, Accessibility **100**, Best Practices **100**, SEO **100**. FCP **1.4 s**, LCP **2.1 s**, CLS **0.062**, TBT **250 ms**. A separate run scored Performance 98/TBT 90 ms; the lower repeat is recorded conservatively.
-- Visual inspection completed at 1440px and 390px in Chromium. The generated hero was reviewed for text artifacts, brands, anatomy/seams, and palette consistency.
-- `npm audit`: 0 vulnerabilities.
+The executable claim entries pass from a clean demo context:
 
-## Operations
+```text
+npm run test:e2e -- --grep @claim:demo-sandbox       PASS
+npm run test:e2e -- --grep @claim:offline-reload    PASS
+npm run test:e2e -- --grep @claim:local-only-data   PASS
+```
 
-- Exact build command: `npm run build`
-- Static deploy directory: `./dist`
-- Billing defaults to `https://api.sociobot.in`; set `VITE_BILLING_BASE=https://pilot-api.sociobot.in` for a registered staging product.
-- No infrastructure, DNS, billing registration, analytics, or secrets are included.
+`@claim:local-only-data` intercepts the whole sample planning flow and observed only the product origin. The PWA test waits for the service worker, switches the browser context offline, reloads `/demo`, and finds the planner plus the offline status.
 
-## Known limits / next steps
+## Production evidence
 
-- Share/QR links contain the selected list, so very large lists may exceed a camera or messaging app’s practical URL limit; the UI falls back clearly to Copy/CSV when QR generation cannot encode it.
-- Data is intentionally device-local with explicit backups; there is no cross-device live sync or collaborative conflict resolution.
-- Lighthouse’s lab TBT varied between 90–250 ms in the container; both runs retained a ≥93 performance score, and the shipped JS is about 56.5 KB before inlining.
+- `/opt/fleet/lib/verify-url.sh https://meal-list-boundaries.sociobot.in …` passed: HTTP 200, title, `lang=en`, one `h1`, `main`, image alt text, labelled buttons, and no console/page errors (879 ms scripted load).
+- SHA-256 comparison matched all **22 deployable files** in `dist/` against the live paths.
+- Live root has the deployed CSP, Permissions-Policy, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and strict referrer policy. Hashed JS, images, and icons return `Cache-Control: public, max-age=31536000, immutable`; HTML and `sw.js` return no-store/no-cache. Live `manifest.webmanifest` is `application/manifest+json`; AVIF is `image/avif`.
+- Production budgets: JS 59,352 bytes raw / 20,703 bytes gzip; CSS 17,923 bytes raw / 4,814 bytes gzip; self-hosted fonts 44,016 bytes; mobile AVIF 20,512 bytes.
+- Live mobile Lighthouse (Chrome remote-debugging run): Performance **99**, Accessibility **99**, FCP **1.2 s**, LCP **1.6 s**, CLS **0**, TBT **100 ms**.
+- The external license endpoint is not part of this static artifact, but live validation observed its repaired finite limit: 30 normal invalid-token responses and 5 `429` responses in a 35-request burst, with `Retry-After: 4`. The independent report records the fresh threshold as 30 allowed / 31st limited.
+
+## Known limits
+
+- Very large selected lists can exceed a practical QR URL capacity; Copy/CSV remain available.
+- Data remains deliberately local-first: there is no account, sync service, or collaboration merge.
+- No package/consumer test applies because this is a static PWA, not a library or CLI.

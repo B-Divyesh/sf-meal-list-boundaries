@@ -1,10 +1,10 @@
-import type { AppState, Boundary, BoundaryList, Meal, SharePayload } from './types';
+import type { AppState, Boundary, BoundaryList, LegacyAppState, Meal, SharePayload } from './types';
 
 export const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export function emptyState(): AppState {
   return {
-    version: 1,
+    version: 2,
     boundaries: [],
     meals: [],
     bought: {},
@@ -55,8 +55,39 @@ export function normalizeIngredient(text: string): string {
   return text.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
 }
 
-export function boughtKey(boundaryId: string, text: string): string {
+export function boughtKey(weekStart: string, boundaryId: string, text: string): string {
+  return `${weekStart}:${boundaryId}:${normalizeIngredient(text)}`;
+}
+
+function legacyBoughtKey(boundaryId: string, text: string): string {
   return `${boundaryId}:${normalizeIngredient(text)}`;
+}
+
+/**
+ * Converts version-one checkmarks to week-scoped keys. A v1 key has no week,
+ * so it is retained only when the matching boundary/ingredient appears in one
+ * planned week. Ambiguous checkmarks are deliberately reset instead of being
+ * guessed onto every week.
+ */
+export function migrateState(value: AppState | LegacyAppState): AppState {
+  if (value.version === 2) return value;
+
+  const matches = new Map<string, { weeks: Set<string>; boundaryId: string; ingredient: string }>();
+  value.meals.forEach((meal) => meal.ingredients.forEach((ingredient) => {
+    const key = legacyBoughtKey(meal.boundaryId, ingredient.text);
+    if (!value.bought[key]) return;
+    const match = matches.get(key) ?? { weeks: new Set<string>(), boundaryId: meal.boundaryId, ingredient: normalizeIngredient(ingredient.text) };
+    match.weeks.add(meal.weekStart);
+    matches.set(key, match);
+  }));
+
+  const bought: Record<string, boolean> = {};
+  matches.forEach(({ weeks, boundaryId, ingredient }) => {
+    if (weeks.size !== 1) return;
+    bought[boughtKey([...weeks][0], boundaryId, ingredient)] = true;
+  });
+
+  return { ...value, version: 2, bought };
 }
 
 export function buildLists(state: AppState, weekStart: string): BoundaryList[] {
@@ -76,10 +107,10 @@ export function buildLists(state: AppState, weekStart: string): BoundaryList[] {
       return {
         boundary,
         items: [...items.entries()].map(([normalized, item]) => ({
-          key: boughtKey(boundary.id, normalized),
+          key: boughtKey(weekStart, boundary.id, normalized),
           text: item.text,
           count: item.count,
-          bought: Boolean(state.bought[boughtKey(boundary.id, normalized)]),
+          bought: Boolean(state.bought[boughtKey(weekStart, boundary.id, normalized)]),
         })),
       };
     })
@@ -127,21 +158,21 @@ function isSharePayload(value: unknown): value is SharePayload {
 
 export function validateImport(value: unknown): AppState {
   if (!value || typeof value !== 'object') throw new Error('That file does not contain a Meal List Boundaries export.');
-  const candidate = value as Partial<AppState>;
-  if (candidate.version !== 1 || !Array.isArray(candidate.boundaries) || !Array.isArray(candidate.meals)) {
+  const candidate = value as Partial<AppState | LegacyAppState>;
+  if ((candidate.version !== 1 && candidate.version !== 2) || !Array.isArray(candidate.boundaries) || !Array.isArray(candidate.meals)) {
     throw new Error('That file uses an unsupported or incomplete export format.');
   }
   if (!candidate.boundaries.every(isBoundary) || !candidate.meals.every(isMeal)) {
     throw new Error('Some boundaries or meals are malformed. Nothing was imported.');
   }
-  return {
-    version: 1,
+  return migrateState({
+    version: candidate.version,
     boundaries: candidate.boundaries,
     meals: candidate.meals,
     bought: candidate.bought && typeof candidate.bought === 'object' ? candidate.bought : {},
     templates: Array.isArray(candidate.templates) ? candidate.templates : [],
     updatedAt: new Date().toISOString(),
-  };
+  } as AppState | LegacyAppState);
 }
 
 function isBoundary(value: unknown): value is Boundary {

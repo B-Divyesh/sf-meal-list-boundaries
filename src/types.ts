@@ -27,12 +27,17 @@ export type WeekTemplate = {
 };
 
 export type AppState = {
-  version: 1;
+  version: 2;
   boundaries: Boundary[];
   meals: Meal[];
   bought: Record<string, boolean>;
   templates: WeekTemplate[];
   updatedAt: string;
+};
+
+/** The on-device format shipped before bought state was scoped to a week. */
+export type LegacyAppState = Omit<AppState, 'version'> & {
+  version: 1;
 };
 
 export type ListItem = {

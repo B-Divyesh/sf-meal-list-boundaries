@@ -1,17 +1,16 @@
-import '@fontsource/alegreya-sans/latin-500.css';
-import '@fontsource/alegreya-sans/latin-700.css';
-import '@fontsource/source-serif-4/latin-400.css';
 import QRCode from 'qrcode';
 import './styles.css';
 import { addDays, buildLists, DAY_NAMES, decodePayload, encodePayload, fromDateKey, makeSharePayload, mondayOf, validateImport, weekLabel } from './domain';
 import { BUY_URL, cachedLicenseValid, captureLicenseFromUrl, PRICE, saveLicense, verifyLicense } from './license';
-import { loadState, saveState } from './storage';
+import { clearState, loadState, saveState } from './storage';
 import type { AppState, BoundaryList, Meal } from './types';
 
 const root = document.querySelector<HTMLDivElement>('#app')!;
 
 const COLORS = ['#2f684d', '#7a4939', '#365d73', '#795d22', '#6a4672', '#3f6661'];
 const SYMBOLS = ['⌂', '◇', '○', '△', '□', '✦'];
+const demoMode = location.pathname === '/demo';
+const storageKey = demoMode ? 'demo:planner' : 'planner';
 
 let state: AppState;
 let currentWeek = mondayOf(new Date());
@@ -22,12 +21,32 @@ let toast: { message: string; action?: () => void; actionLabel?: string } | null
 let toastTimer = 0;
 let storageError = '';
 
+function sampleState(weekStart: string): AppState {
+  return {
+    version: 2,
+    boundaries: [
+      { id: 'demo-home', name: 'Home', symbol: '⌂', color: COLORS[0] },
+      { id: 'demo-cabin', name: 'Cabin', symbol: '◇', color: COLORS[1] },
+    ],
+    meals: [
+      { id: 'demo-pasta', weekStart, day: 0, title: 'Pasta night', boundaryId: 'demo-home', updatedAt: '', ingredients: [{ id: 'demo-basil', text: 'Basil' }, { id: 'demo-tomatoes', text: '2 cans tomatoes' }, { id: 'demo-pasta-noodles', text: 'Pasta' }] },
+      { id: 'demo-tacos', weekStart, day: 2, title: 'Taco bowls', boundaryId: 'demo-home', updatedAt: '', ingredients: [{ id: 'demo-beans', text: 'Black beans' }, { id: 'demo-limes', text: 'Limes' }] },
+      { id: 'demo-soup', weekStart, day: 1, title: 'Cabin soup', boundaryId: 'demo-cabin', updatedAt: '', ingredients: [{ id: 'demo-bread', text: 'Bread' }, { id: 'demo-cabin-basil', text: 'Basil' }] },
+      { id: 'demo-breakfast', weekStart, day: 5, title: 'Trail breakfast', boundaryId: 'demo-cabin', updatedAt: '', ingredients: [{ id: 'demo-oats', text: 'Oats' }, { id: 'demo-apples', text: 'Apples' }] },
+    ],
+    bought: {},
+    templates: [],
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 function escapeHtml(value: string): string {
   return value.replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char] ?? char);
 }
 
-function boundaryStyle(color: string): string {
-  return `--boundary:${/^#[0-9a-f]{6}$/i.test(color) ? color : COLORS[0]}`;
+function boundaryClass(color: string): string {
+  const index = COLORS.findIndex((candidate) => candidate.toLowerCase() === color.toLowerCase());
+  return `boundary-color-${index < 0 ? 0 : index}`;
 }
 
 function formatDay(week: string, index: number): string {
@@ -36,7 +55,7 @@ function formatDay(week: string, index: number): string {
 
 async function persist(message?: string): Promise<void> {
   try {
-    await saveState(state);
+    await saveState(state, storageKey);
     storageError = '';
     if (message) showToast(message);
   } catch {
@@ -79,6 +98,7 @@ function shell(content: string, shared = false): string {
         ${shared ? '' : `<button class="icon-button" type="button" data-action="settings" aria-label="Open settings">${icon('gear')}</button>`}
       </div>
     </header>
+    ${demoMode ? `<aside class="demo-banner" role="status"><span><b>Demo</b> — sample data, nothing is saved to your planner.</span><span><button type="button" data-action="reset-demo">Reset demo</button><button type="button" data-action="start-real">Start for real</button></span></aside>` : ''}
     ${content}
     <footer>
       <p>Private by default. Your plan lives on this device.</p>
@@ -102,6 +122,7 @@ function render(): void {
           <p class="eyebrow">Field note 01 · boundary-aware planning</p>
           <h1 id="page-title">One week. Every ingredient in the right hands.</h1>
           <p>Pin each meal to a home or pickup. Its ingredients stay on that list—from plan to handoff.</p>
+          <div class="hero-actions">${demoMode ? '' : `<button class="primary" type="button" data-action="start-demo">Try it with sample data</button>`}</div>
           <div class="hero-legend" aria-label="How it works"><span><b>1</b> Name your places</span><span><b>2</b> Pin each meal</span><span><b>3</b> Hand off clean lists</span></div>
         </div>
         <picture class="hero-plate">
@@ -150,8 +171,8 @@ function renderPlan(): string {
 
 function renderMeal(meal: Meal): string {
   const boundary = state.boundaries.find((item) => item.id === meal.boundaryId);
-  return `<li class="meal" data-meal-id="${meal.id}">
-    <span class="boundary-tag" style="${boundaryStyle(boundary?.color ?? COLORS[0])}">${escapeHtml(boundary?.symbol ?? '?')} ${escapeHtml(boundary?.name ?? 'Missing boundary')}</span>
+  return `<li class="meal ${boundaryClass(boundary?.color ?? COLORS[0])}" data-meal-id="${meal.id}">
+    <span class="boundary-tag">${escapeHtml(boundary?.symbol ?? '?')} ${escapeHtml(boundary?.name ?? 'Missing boundary')}</span>
     <b>${escapeHtml(meal.title)}</b>
     <span>${meal.ingredients.length} ingredient${meal.ingredients.length === 1 ? '' : 's'}</span>
     <div class="row-actions"><button type="button" data-action="edit-meal" data-id="${meal.id}">Edit</button><button class="danger-text" type="button" data-action="delete-meal" data-id="${meal.id}">Remove</button></div>
@@ -169,7 +190,7 @@ function renderLists(): string {
 
 function renderBoundaryList(list: BoundaryList): string {
   const bought = list.items.filter((item) => item.bought).length;
-  return `<article class="list-sheet" data-boundary-sheet="${list.boundary.id}" style="${boundaryStyle(list.boundary.color)}">
+  return `<article class="list-sheet ${boundaryClass(list.boundary.color)}" data-boundary-sheet="${list.boundary.id}">
     <header><div class="list-symbol">${escapeHtml(list.boundary.symbol)}</div><div><p class="specimen">Collection boundary</p><h3>${escapeHtml(list.boundary.name)}</h3><p>${bought} of ${list.items.length} gathered</p></div></header>
     <ul class="shopping-list">${list.items.map((item) => `<li class="${item.bought ? 'bought' : ''}"><label><input type="checkbox" data-action="toggle-bought" data-key="${escapeHtml(item.key)}" ${item.bought ? 'checked' : ''}/><span><b>${escapeHtml(item.text)}</b>${item.count > 1 ? `<small> × ${item.count}</small>` : ''}</span></label></li>`).join('')}</ul>
     <div class="list-actions"><button type="button" data-action="copy-list" data-id="${list.boundary.id}">Copy</button><button type="button" data-action="share-list" data-id="${list.boundary.id}">Share link</button><button type="button" data-action="qr-list" data-id="${list.boundary.id}">Show QR</button><button type="button" data-action="csv-list" data-id="${list.boundary.id}">CSV</button><button type="button" data-action="print-list" data-id="${list.boundary.id}">Print</button></div>
@@ -191,7 +212,7 @@ function renderMealDialog(): string {
 function renderSettingsDialog(): string {
   return `<dialog id="settings-dialog" class="wide-dialog" aria-labelledby="settings-title"><div class="dialog-heading"><div><p class="specimen">Field cabinet</p><h2 id="settings-title">Boundaries & data</h2></div><button class="icon-button" type="button" data-action="close-dialog" aria-label="Close settings">×</button></div>
     <section><h3>Your boundaries</h3><p class="muted">The free field sheet includes two. Field Kit adds as many as your week needs.</p>
-      <ul class="boundary-settings">${state.boundaries.map((boundary) => `<li style="${boundaryStyle(boundary.color)}"><span>${escapeHtml(boundary.symbol)}</span><form data-form="rename-boundary"><input type="hidden" name="id" value="${boundary.id}"/><label><span class="sr-only">Boundary name</span><input name="name" maxlength="40" required value="${escapeHtml(boundary.name)}"/></label><button type="submit">Save</button><button class="danger-text" type="button" data-action="delete-boundary" data-id="${boundary.id}">Remove</button></form></li>`).join('')}</ul>
+      <ul class="boundary-settings">${state.boundaries.map((boundary) => `<li class="${boundaryClass(boundary.color)}"><span>${escapeHtml(boundary.symbol)}</span><form data-form="rename-boundary"><input type="hidden" name="id" value="${boundary.id}"/><label><span class="sr-only">Boundary name</span><input name="name" maxlength="40" required value="${escapeHtml(boundary.name)}"/></label><button type="submit">Save</button><button class="danger-text" type="button" data-action="delete-boundary" data-id="${boundary.id}">Remove</button></form></li>`).join('')}</ul>
       <form class="inline-form" data-form="add-boundary"><label><span>New boundary name</span><input name="name" maxlength="40" required placeholder="e.g. Lake house"/></label><button class="primary" type="submit">${icon('plus')} Add boundary</button></form>
     </section>
     <section class="settings-section"><h3>Your data</h3><p class="muted">Stored only in this browser. Export a JSON backup any time; importing replaces this device’s current planner after confirmation.</p><div class="button-row"><button type="button" data-action="export-all">${icon('download')} Export backup</button><label class="button-file">Import backup<input id="import-file" type="file" accept="application/json,.json"/></label></div></section>
@@ -219,7 +240,7 @@ function renderShared(encoded: string): void {
     const payload = decodePayload(encoded);
     const checkedKey = `mlb_shared_bought:${payload.listId}`;
     const checked = new Set<string>(JSON.parse(localStorage.getItem(checkedKey) ?? '[]') as string[]);
-    root.innerHTML = shell(`<main id="main" tabindex="-1" class="shared-main"><section class="shared-intro"><p class="eyebrow">Shared field sheet · ${escapeHtml(weekLabel(payload.weekStart))}</p><h1>${escapeHtml(payload.boundary.symbol)} ${escapeHtml(payload.boundary.name)} shopping list</h1><p>This handoff contains one boundary only. Tick items as you gather them; progress stays on this device.</p></section><article class="list-sheet shared-sheet" style="${boundaryStyle(payload.boundary.color)}"><header><div class="list-symbol">${escapeHtml(payload.boundary.symbol)}</div><div><p class="specimen">Collection boundary</p><h2>${escapeHtml(payload.boundary.name)}</h2><p>${payload.items.length} item${payload.items.length === 1 ? '' : 's'}</p></div></header><ul class="shopping-list">${payload.items.map((item, index) => `<li class="${checked.has(String(index)) ? 'bought' : ''}"><label><input type="checkbox" data-shared-index="${index}" ${checked.has(String(index)) ? 'checked' : ''}/><span><b>${escapeHtml(item.text)}</b>${item.count > 1 ? `<small> × ${item.count}</small>` : ''}</span></label></li>`).join('')}</ul><div class="list-actions"><button type="button" onclick="window.print()">Print</button><a href="/">Open my planner</a></div></article></main>`, true);
+    root.innerHTML = shell(`<main id="main" tabindex="-1" class="shared-main"><section class="shared-intro"><p class="eyebrow">Shared field sheet · ${escapeHtml(weekLabel(payload.weekStart))}</p><h1>${escapeHtml(payload.boundary.symbol)} ${escapeHtml(payload.boundary.name)} shopping list</h1><p>This handoff contains one boundary only. Tick items as you gather them; progress stays on this device.</p></section><article class="list-sheet shared-sheet ${boundaryClass(payload.boundary.color)}"><header><div class="list-symbol">${escapeHtml(payload.boundary.symbol)}</div><div><p class="specimen">Collection boundary</p><h2>${escapeHtml(payload.boundary.name)}</h2><p>${payload.items.length} item${payload.items.length === 1 ? '' : 's'}</p></div></header><ul class="shopping-list">${payload.items.map((item, index) => `<li class="${checked.has(String(index)) ? 'bought' : ''}"><label><input type="checkbox" data-shared-index="${index}" ${checked.has(String(index)) ? 'checked' : ''}/><span><b>${escapeHtml(item.text)}</b>${item.count > 1 ? `<small> × ${item.count}</small>` : ''}</span></label></li>`).join('')}</ul><div class="list-actions"><button type="button" data-action="print-shared">Print</button><a href="/">Open my planner</a></div></article></main>`, true);
     root.querySelectorAll<HTMLInputElement>('[data-shared-index]').forEach((input) => input.addEventListener('change', () => {
       input.checked ? checked.add(input.dataset.sharedIndex ?? '') : checked.delete(input.dataset.sharedIndex ?? '');
       localStorage.setItem(checkedKey, JSON.stringify([...checked]));
@@ -304,7 +325,10 @@ root.addEventListener('click', async (event) => {
     const dark = document.documentElement.dataset.theme !== 'dark';
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
     localStorage.setItem('mlb_theme', dark ? 'dark' : 'light');
-  } else if (action === 'settings') openSettings();
+  } else if (action === 'start-demo') location.assign('/demo');
+  else if (action === 'reset-demo' && demoMode) { state = sampleState(currentWeek); await persist('Demo reset.'); render(); }
+  else if (action === 'start-real' && demoMode) { await clearState(storageKey); location.assign('/'); }
+  else if (action === 'settings') openSettings();
   else if (action === 'close-dialog') button.closest<HTMLDialogElement>('dialog')?.close();
   else if (action === 'add-meal') openMeal(Number(button.dataset.day ?? 0));
   else if (action === 'edit-meal') openMeal(0, button.dataset.id);
@@ -336,6 +360,7 @@ root.addEventListener('click', async (event) => {
     window.print();
     document.querySelectorAll<HTMLElement>('[data-boundary-sheet]').forEach((sheet) => sheet.classList.remove('print-hidden'));
   }
+  else if (action === 'print-shared') window.print();
   else if (action === 'export-all') download(`meal-list-boundaries-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(state, null, 2), 'application/json');
   else if (action === 'delete-boundary') {
     const boundary = state.boundaries.find((item) => item.id === button.dataset.id); const meals = state.meals.filter((meal) => meal.boundaryId === boundary?.id).length;
@@ -402,9 +427,14 @@ function registerServiceWorker(): void {
 
 async function start(): Promise<void> {
   applyTheme();
+  if (demoMode) document.title = 'Demo — Meal List Boundaries';
   captureLicenseFromUrl();
-  try { state = await loadState(); } catch { state = { version: 1, boundaries: [], meals: [], bought: {}, templates: [], updatedAt: new Date().toISOString() }; storageError = 'This browser blocked local storage. You can explore, but changes may not survive a refresh.'; }
+  let migrated = false;
+  try { const loaded = await loadState(storageKey); state = loaded.state; migrated = loaded.migrated; } catch { state = { version: 2, boundaries: [], meals: [], bought: {}, templates: [], updatedAt: new Date().toISOString() }; storageError = 'This browser blocked local storage. You can explore, but changes may not survive a refresh.'; }
+  if (demoMode && state.boundaries.length === 0 && state.meals.length === 0) state = sampleState(currentWeek);
+  if (migrated) await persist();
   render();
+  if (migrated) showToast('Updated local checkmarks so each week stays separate.');
   window.addEventListener('online', () => render());
   window.addEventListener('offline', () => render());
   const result = await verifyLicense();

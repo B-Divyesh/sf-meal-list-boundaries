@@ -60,6 +60,55 @@ test('home screen has no serious accessibility violations', async ({ page }) => 
   expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
 });
 
+test('@claim:demo-sandbox runs sample data separately from the real planner', async ({ page }) => {
+  await page.goto('/demo');
+  await expect(page.locator('.demo-banner')).toContainText('Demo — sample data');
+  await expect(page.getByText('Pasta night')).toBeVisible();
+  await page.getByRole('button', { name: 'Start for real' }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByText('Pasta night')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Name the places you shop for' })).toBeVisible();
+});
+
+test('@claim:local-only-data keeps a sample planning flow on the product origin', async ({ page }) => {
+  const requests: string[] = [];
+  page.on('request', (request) => requests.push(request.url()));
+  await page.goto('/demo');
+  await page.getByRole('button', { name: /Lists/ }).click();
+  await page.getByRole('checkbox').first().check();
+  const productOrigin = new URL(page.url()).origin;
+  expect(requests.filter((url) => url.startsWith('http')).every((url) => new URL(url).origin === productOrigin)).toBe(true);
+});
+
+test('does not carry a gathered ingredient into the next week', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  const settings = page.getByRole('dialog', { name: 'Boundaries & data' });
+  await settings.getByLabel('New boundary name').fill('Home');
+  await settings.getByRole('button', { name: 'Add boundary' }).click();
+  await page.getByRole('dialog', { name: 'Boundaries & data' }).getByRole('button', { name: 'Done' }).click();
+
+  await page.getByRole('button', { name: 'Add meal on Monday' }).click();
+  const firstMeal = page.getByRole('dialog', { name: 'Add to Monday' });
+  await firstMeal.getByLabel('Meal name').fill('Week one dinner');
+  await firstMeal.getByLabel('Ingredients, one per line').fill('Basil');
+  await firstMeal.getByRole('button', { name: 'Save meal' }).click();
+  await page.getByRole('button', { name: /Lists/ }).click();
+  await page.getByRole('checkbox', { name: /Basil/ }).check();
+
+  await page.getByRole('button', { name: 'Next week' }).click();
+  await page.locator('[data-view="plan"]').click();
+  await page.getByRole('button', { name: 'Add meal on Monday' }).click();
+  const nextMeal = page.getByRole('dialog', { name: 'Add to Monday' });
+  await nextMeal.getByLabel('Meal name').fill('Week two dinner');
+  await nextMeal.getByLabel('Ingredients, one per line').fill('Basil');
+  await nextMeal.getByRole('button', { name: 'Save meal' }).click();
+  await page.getByRole('button', { name: /Lists/ }).click();
+
+  await expect(page.getByText('0 of 1 gathered')).toBeVisible();
+  await expect(page.getByRole('checkbox', { name: /Basil/ })).not.toBeChecked();
+});
+
 test('works at 390px without horizontal overflow', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile', 'mobile-only layout check');
   await page.goto('/');
@@ -68,9 +117,28 @@ test('works at 390px without horizontal overflow', async ({ page }, testInfo) =>
   await expect(page.getByRole('button', { name: 'Open settings' })).toBeVisible();
 });
 
-test('reloads the cached planner while offline', async ({ page, context }) => {
-  test.skip(test.info().project.name !== 'chromium', 'one browser is enough for the service worker check');
+test('keeps core action targets at least 44px at 390px', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile', 'mobile-only target-size check');
   await page.goto('/');
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  const settings = page.getByRole('dialog', { name: 'Boundaries & data' });
+  await settings.getByLabel('New boundary name').fill('Home');
+  await settings.getByRole('button', { name: 'Add boundary' }).click();
+  await expect(settings.getByRole('button', { name: 'Save' })).toHaveJSProperty('offsetHeight', 44);
+  await expect(settings.getByRole('button', { name: 'Remove' })).toHaveJSProperty('offsetHeight', 44);
+  await settings.getByRole('button', { name: 'Done' }).click();
+  await page.getByRole('button', { name: 'Add meal on Monday' }).click();
+  const meal = page.getByRole('dialog', { name: 'Add to Monday' });
+  await meal.getByLabel('Meal name').fill('Pasta');
+  await meal.getByLabel('Ingredients, one per line').fill('Basil');
+  await meal.getByRole('button', { name: 'Save meal' }).click();
+  await expect(page.getByRole('button', { name: 'Edit' })).toHaveJSProperty('offsetHeight', 44);
+  await expect(page.getByRole('button', { name: 'Remove' })).toHaveJSProperty('offsetHeight', 44);
+});
+
+test('@claim:offline-reload reloads the cached planner while offline', async ({ page, context }) => {
+  test.skip(test.info().project.name !== 'chromium', 'one browser is enough for the service worker check');
+  await page.goto('/demo');
   await page.evaluate(() => navigator.serviceWorker.ready);
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
   await page.waitForTimeout(1000);

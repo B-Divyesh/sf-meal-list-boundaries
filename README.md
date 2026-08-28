@@ -4,6 +4,8 @@ A local-first weekly meal planner for households shopping across more than one h
 
 Live product: <https://meal-list-boundaries.sociobot.in>
 
+Try the planner immediately at <https://meal-list-boundaries.sociobot.in/demo>. The sample stays separate from your real planner.
+
 ## What it does
 
 - Plans meals across a Monday–Sunday board and navigates between weeks.
@@ -31,6 +33,8 @@ npm run dev
 
 The app uses Vite and TypeScript with no backend. Planner data is stored in IndexedDB. Theme and license verification metadata use localStorage. No meal, dietary, or location data leaves the browser.
 
+See [the demo sandbox](.factory/demo.md) and [testable product claims](.factory/claims.json).
+
 ## Test and build
 
 ```bash
@@ -43,7 +47,7 @@ Playwright is pinned to 1.58.2. In the factory image, its browsers are supplied 
 
 ## Deploy
 
-Deploy the contents of `dist/` as a static site, with `dist/index.html` at the root. The privacy and terms pages build to `/privacy/` and `/terms/`. For SPA-style shared-list links, the host should serve `index.html` for an unknown navigation path; query-string handoffs work on the root without a rewrite.
+Deploy the contents of `dist/` as a static site, with `dist/index.html` at the root. The build includes `staticwebapp.config.json` for SPA rewrites, strict browser policies, correct manifest/AVIF MIME types, update-safe HTML/service-worker caching, and immutable asset caching. The privacy and terms pages build to `/privacy/` and `/terms/`.
 
 Set `VITE_BILLING_BASE` at build time only when the environment needs a non-production billing host. The default is `https://api.sociobot.in`; product registration is handled outside this repository and no product ID is hardcoded.
 

@@ -8,6 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
+    "lint": "tsc --noEmit",
     "test:e2e": "playwright test"
   },
   "dependencies": {
@@ -22,7 +23,6 @@
     "jsdom": "^26.1.0",
     "typescript": "^5.8.3",
     "vite": "^6.2.4",
-    "vite-plugin-singlefile": "^2.3.0",
     "vitest": "^3.1.1"
   }
 }
