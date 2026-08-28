@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Meal List Boundaries leaf mark">
+  <rect width="64" height="64" rx="12" fill="#f5f0e4"/>
+  <path d="M16 45c4-20 13-29 34-31-1 20-10 31-29 32" fill="#2f684d"/>
+  <path d="M17 49c9-14 17-21 29-29" fill="none" stroke="#20342a" stroke-width="3" stroke-linecap="round"/>
+  <path d="M28 35l-1-11M35 29l10 1M23 41l-1-8" fill="none" stroke="#f5f0e4" stroke-width="2" stroke-linecap="round"/>
+</svg>

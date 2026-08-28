@@ -1,0 +1,9 @@
+{
+  "tool": "/opt/fleet/lib/gen-image.sh",
+  "deployment": "factory-image",
+  "date": "2026-08-28",
+  "size": "1536x1024",
+  "quality": "high",
+  "prompt": "Overhead botanical field-guide still life showing two distinct grocery collection envelopes, each with a few vegetables and herbs, a slender fern specimen clearly dividing them, small brass clips and pencil annotation marks but absolutely no legible writing. Archival warm paper, pressed leaves, linen tape, graphite, natural produce, scientific plate composition. Soft north-window daylight, flat-lay 50mm, gentle true shadows, finely detailed paper texture. Parchment, forest ink, fern green, muted beet rust, dry ochre. No people, no hands, no brands, no logos, no readable text, no watermark, no shopping cart, no supermarket, no glossy 3D render, no neon, no gradient, no excessive objects, no distorted produce.",
+  "review": "Accepted: coherent central boundary, natural produce, no brands, watermark, people, or legible text; minor graphite marks are intentionally non-legible."
+}

@@ -1,0 +1,27 @@
+{
+  "name": "meal-list-boundaries",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@fontsource/alegreya-sans": "^5.2.6",
+    "@fontsource/source-serif-4": "^5.2.8",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "1.58.2",
+    "@types/qrcode": "^1.5.5",
+    "jsdom": "^26.1.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.2.4",
+    "vitest": "^3.1.1"
+  }
+}
