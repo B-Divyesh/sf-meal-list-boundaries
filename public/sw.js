@@ -1,20 +1,35 @@
-const CACHE = 'meal-list-boundaries-shell-v1';
+const CACHE = 'meal-list-boundaries-shell-v3';
 const ASSETS = [
   '/',
   '/index.html',
   '/offline.html',
   '/manifest.webmanifest',
+  '/legal.css',
+  '/robots.txt',
   '/icons/leaf.svg',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/assets/boundary-field-guide-640.webp',
   '/assets/boundary-field-guide-1024.webp',
+  '/assets/boundary-field-guide-640.avif',
+  '/assets/boundary-field-guide-1024.avif',
+  '/assets/boundary-field-guide-1024.jpg',
   '/privacy/',
   '/terms/'
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    await cache.addAll(ASSETS);
+    const shell = await fetch('/index.html');
+    const html = await shell.clone().text();
+    await cache.put('/index.html', shell);
+    const discovered = [...html.matchAll(/(?:src|href)="([^"#]+)"/g)]
+      .map((match) => match[1])
+      .filter((path) => path.startsWith('/') && !path.startsWith('//'));
+    await cache.addAll([...new Set(discovered)]);
+  })());
 });
 
 self.addEventListener('message', (event) => {

@@ -16,12 +16,13 @@
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.10.2",
+    "@axe-core/playwright": "4.10.2",
     "@playwright/test": "1.58.2",
     "@types/qrcode": "^1.5.5",
     "jsdom": "^26.1.0",
     "typescript": "^5.8.3",
     "vite": "^6.2.4",
+    "vite-plugin-singlefile": "^2.3.0",
     "vitest": "^3.1.1"
   }
 }

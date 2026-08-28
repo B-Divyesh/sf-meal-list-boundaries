@@ -1,10 +1,10 @@
-import '@fontsource/alegreya-sans/500.css';
-import '@fontsource/alegreya-sans/700.css';
-import '@fontsource/source-serif-4/400.css';
+import '@fontsource/alegreya-sans/latin-500.css';
+import '@fontsource/alegreya-sans/latin-700.css';
+import '@fontsource/source-serif-4/latin-400.css';
 import QRCode from 'qrcode';
 import './styles.css';
 import { addDays, buildLists, DAY_NAMES, decodePayload, encodePayload, fromDateKey, makeSharePayload, mondayOf, validateImport, weekLabel } from './domain';
-import { BILLING_BASE, BUY_URL, cachedLicenseValid, captureLicenseFromUrl, PRICE, saveLicense, verifyLicense } from './license';
+import { BUY_URL, cachedLicenseValid, captureLicenseFromUrl, PRICE, saveLicense, verifyLicense } from './license';
 import { loadState, saveState } from './storage';
 import type { AppState, BoundaryList, Meal } from './types';
 
@@ -18,7 +18,7 @@ let currentWeek = mondayOf(new Date());
 let view: 'plan' | 'lists' = 'plan';
 let licensed = cachedLicenseValid();
 let licenseNotice = '';
-let toast: { message: string; undo?: () => void } | null = null;
+let toast: { message: string; action?: () => void; actionLabel?: string } | null = null;
 let toastTimer = 0;
 let storageError = '';
 
@@ -45,17 +45,17 @@ async function persist(message?: string): Promise<void> {
   }
 }
 
-function showToast(message: string, undo?: () => void): void {
-  toast = { message, undo };
+function showToast(message: string, action?: () => void, actionLabel = 'Undo'): void {
+  toast = { message, action, actionLabel };
   window.clearTimeout(toastTimer);
   renderToast();
-  toastTimer = window.setTimeout(() => { toast = null; renderToast(); }, undo ? 7000 : 4000);
+  toastTimer = window.setTimeout(() => { toast = null; renderToast(); }, action ? 7000 : 4000);
 }
 
 function renderToast(): void {
   const region = document.querySelector<HTMLDivElement>('#toast-region');
   if (!region) return;
-  region.innerHTML = toast ? `<div class="toast"><span>${escapeHtml(toast.message)}</span>${toast.undo ? '<button type="button" data-action="undo">Undo</button>' : ''}</div>` : '';
+  region.innerHTML = toast ? `<div class="toast"><span>${escapeHtml(toast.message)}</span>${toast.action ? `<button type="button" data-action="toast-action">${escapeHtml(toast.actionLabel ?? 'Undo')}</button>` : ''}</div>` : '';
 }
 
 function icon(name: 'leaf' | 'gear' | 'plus' | 'download' | 'moon'): string {
@@ -105,8 +105,9 @@ function render(): void {
           <div class="hero-legend" aria-label="How it works"><span><b>1</b> Name your places</span><span><b>2</b> Pin each meal</span><span><b>3</b> Hand off clean lists</span></div>
         </div>
         <picture class="hero-plate">
-          <source media="(max-width: 640px)" srcset="/assets/boundary-field-guide-640.webp" />
-          <img src="/assets/boundary-field-guide-1024.webp" width="1024" height="683" alt="Two paper grocery envelopes separated by a fern specimen, illustrating two distinct shopping boundaries" fetchpriority="high" decoding="async" />
+          <source type="image/avif" srcset="/assets/boundary-field-guide-640.avif 640w, /assets/boundary-field-guide-1024.avif 1024w" sizes="(max-width: 680px) 100vw, 54vw" />
+          <source type="image/webp" srcset="/assets/boundary-field-guide-640.webp 640w, /assets/boundary-field-guide-1024.webp 1024w" sizes="(max-width: 680px) 100vw, 54vw" />
+          <img src="/assets/boundary-field-guide-1024.jpg" width="1024" height="683" alt="Two paper grocery envelopes separated by a fern specimen, illustrating two distinct shopping boundaries" fetchpriority="high" decoding="async" />
         </picture>
       </section>
       ${storageError ? `<div class="alert error" role="alert"><b>Local save problem.</b> ${escapeHtml(storageError)}</div>` : ''}
@@ -320,7 +321,7 @@ root.addEventListener('click', async (event) => {
     const previous = Boolean(state.bought[key]);
     state.bought[key] = !previous;
     await persist(); render(); showToast(state.bought[key] ? 'Marked as gathered.' : 'Returned to the list.', async () => { state.bought[key] = previous; await persist(); render(); });
-  } else if (action === 'undo' && toast?.undo) { const undo = toast.undo; toast = null; await undo(); }
+  } else if (action === 'toast-action' && toast?.action) { const run = toast.action; toast = null; await run(); }
   else if (action === 'copy-list') {
     const list = getList(button.dataset.id ?? ''); if (list) { try { await copy(listText(list)); showToast('List copied.'); } catch { showToast('Copy was blocked. Select the list and copy it manually.'); } }
   } else if (action === 'share-list') {
@@ -355,11 +356,11 @@ root.addEventListener('submit', async (event) => {
     const id = String(data.get('mealId') ?? ''); const existing = state.meals.find((meal) => meal.id === id);
     const meal: Meal = { id: existing?.id ?? crypto.randomUUID(), weekStart: currentWeek, day: Number(data.get('day')), title, boundaryId: String(data.get('boundaryId')), ingredients: ingredientLines.map((text, index) => ({ id: existing?.ingredients[index]?.id ?? crypto.randomUUID(), text })), updatedAt: new Date().toISOString() };
     existing ? state.meals.splice(state.meals.indexOf(existing), 1, meal) : state.meals.push(meal);
-    form.closest<HTMLDialogElement>('dialog')?.close(); await persist(existing ? 'Meal updated.' : 'Meal pinned to its boundary.'); render();
+    form.closest<HTMLDialogElement>('dialog')?.close(); render(); await persist(existing ? 'Meal updated.' : 'Meal pinned to its boundary.');
   } else if (form.dataset.form === 'add-boundary') {
     if (!licensed && state.boundaries.length >= 2) { showToast('The free field sheet includes two boundaries. Field Kit unlocks more.'); return; }
     const name = String(data.get('name') ?? '').trim(); if (!name) return; const index = state.boundaries.length;
-    state.boundaries.push({ id: crypto.randomUUID(), name, symbol: SYMBOLS[index % SYMBOLS.length], color: COLORS[index % COLORS.length] }); await persist('Boundary added.'); render(); reopenSettings();
+    state.boundaries.push({ id: crypto.randomUUID(), name, symbol: SYMBOLS[index % SYMBOLS.length], color: COLORS[index % COLORS.length] }); render(); reopenSettings(); await persist('Boundary added.');
   } else if (form.dataset.form === 'rename-boundary') {
     const boundary = state.boundaries.find((item) => item.id === data.get('id')); const name = String(data.get('name') ?? '').trim(); if (boundary && name) boundary.name = name; await persist('Boundary name saved.'); render(); reopenSettings();
   } else if (form.dataset.form === 'restore-license') {
@@ -392,7 +393,7 @@ function registerServiceWorker(): void {
       const worker = registration.installing;
       worker?.addEventListener('statechange', () => {
         if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-          showToast('An updated field sheet is ready. Reload to use it.', () => { worker.postMessage({ type: 'SKIP_WAITING' }); location.reload(); });
+          showToast('An updated field sheet is ready.', () => { worker.postMessage({ type: 'SKIP_WAITING' }); location.reload(); }, 'Reload');
         }
       });
     });
@@ -414,6 +415,3 @@ async function start(): Promise<void> {
 }
 
 void start();
-
-// Exposed for static legal copy and support diagnostics without collecting telemetry.
-console.info(`Meal List Boundaries ready · billing ${new URL(BILLING_BASE).host}`);
