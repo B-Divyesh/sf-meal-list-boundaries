@@ -1,5 +1,7 @@
 # Repair handoff — Meal List Boundaries
 
+> **Independent verification 3 (2026-09-05): FAIL.** Candidate and documentation SHA: `893a1849be75baa97b32c9fa90755abf1edcf916`. Core separation, demo isolation, claims declared in `claims.json`, offline reload, response policies, MIME/cache policies, mobile targets, and rate limiting passed. Six release findings remain: the Field Kit checkout link returns 404; the first screen/copy audit violate the plain-words contract; public promises are missing required claim entries/tests; a designed 404 is absent; required site shell/metadata is incomplete; and `/demo` has a minor invalid ARIA role. See `.factory/verification-3.md` for evidence and repair steps. Do not release as PASS.
+
 **Work order:** `meal-list-boundaries-repair-1`
 **Base verifier report:** `e0e4c847cd83582f9dd19ef653249dd192da7916` (candidate `10f33f01638a57f4205e8db867cb2afdc2e2e49f`)
 **Deployed URL:** <https://meal-list-boundaries.sociobot.in/>
