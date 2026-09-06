@@ -70,13 +70,24 @@ test('home screen has no serious accessibility violations', async ({ page }) => 
 });
 
 test('@claim:demo-sandbox runs sample data separately from the real planner', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  const realSettings = page.getByRole('dialog', { name: 'Places & data' });
+  await realSettings.getByLabel('New place name').fill('Real home');
+  await realSettings.getByRole('button', { name: 'Add place' }).click();
+  await page.getByRole('dialog', { name: 'Places & data' }).getByRole('button', { name: 'Done' }).click();
   await page.goto('/demo');
   await expect(page.locator('.demo-banner')).toContainText('Demo — sample data');
   await expect(page.getByText('Pasta night')).toBeVisible();
+  await page.getByRole('button', { name: /Lists/ }).click();
+  await page.getByRole('checkbox').first().check();
+  await page.getByRole('button', { name: 'Reset demo' }).click();
+  await expect(page.getByRole('checkbox').first()).not.toBeChecked();
   await page.getByRole('button', { name: 'Start for real' }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByText('Pasta night')).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: 'Name the places you shop for' })).toBeVisible();
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  await expect(page.getByRole('dialog', { name: 'Places & data' }).locator('input[value="Real home"]')).toBeVisible();
 });
 
 test('@claim:local-only-data keeps a sample planning flow on the product origin', async ({ page }) => {
@@ -303,6 +314,53 @@ test('demo has no axe violations in light or dark theme', async ({ page }) => {
   expect((await new AxeBuilder({ page: page as never }).analyze()).violations).toEqual([]);
   await page.getByRole('button', { name: 'Switch color theme' }).click();
   expect((await new AxeBuilder({ page: page as never }).analyze()).violations).toEqual([]);
+});
+
+test('invalid form and import keep the sample available for recovery', async ({ page }) => {
+  await page.goto('/demo');
+  await page.getByRole('button', { name: 'Add meal on Sunday' }).click();
+  const meal = page.getByRole('dialog', { name: 'Add to Sunday' });
+  await meal.getByRole('button', { name: 'Save meal' }).click();
+  await expect(meal).toBeVisible();
+  expect(await meal.getByLabel('Meal name').evaluate((input: HTMLInputElement) => input.validity.valueMissing)).toBe(true);
+  await meal.getByRole('button', { name: 'Cancel' }).click();
+
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  await page.locator('#import-file').setInputFiles('tests/fixtures/invalid-backup.json');
+  await expect(page.getByText('That file uses an unsupported or incomplete export format.')).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Places & data' })).toBeVisible();
+  await expect(page.getByText('Pasta night')).toBeAttached();
+});
+
+test('keyboard focus enters the page and returns from the settings dialog', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Skip to planner' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#main')).toBeFocused();
+
+  const settingsButton = page.getByRole('button', { name: 'Open settings' });
+  await settingsButton.focus();
+  await page.keyboard.press('Enter');
+  const settings = page.getByRole('dialog', { name: 'Places & data' });
+  await expect(settings).toBeVisible();
+  expect(await settings.evaluate((dialog) => dialog.contains(document.activeElement))).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect(settings).not.toBeVisible();
+  await expect(settingsButton).toBeFocused();
+});
+
+test('reduced motion removes scrolling and visible transition movement', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/demo');
+  const motion = await page.evaluate(() => ({
+    scrollBehavior: getComputedStyle(document.documentElement).scrollBehavior,
+    transitionDuration: getComputedStyle(document.querySelector('button')!).transitionDuration,
+    animationDuration: getComputedStyle(document.querySelector('.view-panel')!).animationDuration,
+  }));
+  expect(motion.scrollBehavior).toBe('auto');
+  expect(Number.parseFloat(motion.transitionDuration)).toBeLessThan(0.001);
+  expect(Number.parseFloat(motion.animationDuration)).toBeLessThan(0.001);
 });
 
 test('routes expose their own titles, metadata, shell, and recovery page', async ({ page }) => {

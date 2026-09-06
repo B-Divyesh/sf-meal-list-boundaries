@@ -171,6 +171,9 @@ function render(): void {
     ${renderSettingsDialog()}
     ${renderQrDialog()}`;
   root.innerHTML = shell(mainContent);
+  root.querySelectorAll<HTMLInputElement>('input[data-action="toggle-bought"]').forEach((input) => {
+    input.checked = Boolean(state.bought[input.dataset.key ?? '']);
+  });
   renderToast();
 }
 

@@ -4,7 +4,7 @@
     "claim": "Try four sample meals without saving changes to your real planner",
     "where": "first-screen action, demo banner, README",
     "test": "npm run test:e2e -- --grep @claim:demo-sandbox",
-    "sandbox": "fresh browser context; open /demo; confirm sample meals; leave demo; confirm the real planner is empty"
+    "sandbox": "fresh browser context; save Real home; open /demo; change and reset the sample; leave demo; confirm Real home remains unchanged"
   },
   {
     "id": "offline-reload",
