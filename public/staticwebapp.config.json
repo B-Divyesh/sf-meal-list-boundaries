@@ -1,7 +1,8 @@
 {
-  "navigationFallback": {
-    "rewrite": "/index.html",
-    "exclude": ["/assets/*", "/icons/*", "/privacy/*", "/terms/*", "/offline.html", "/manifest.webmanifest", "/robots.txt", "/sitemap.xml", "/sw.js"]
+  "responseOverrides": {
+    "404": {
+      "rewrite": "/404.html"
+    }
   },
   "globalHeaders": {
     "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -16,6 +17,14 @@
     ".webmanifest": "application/manifest+json"
   },
   "routes": [
+    {
+      "route": "/demo",
+      "rewrite": "/index.html"
+    },
+    {
+      "route": "/demo/",
+      "rewrite": "/index.html"
+    },
     {
       "route": "/assets/*",
       "headers": {

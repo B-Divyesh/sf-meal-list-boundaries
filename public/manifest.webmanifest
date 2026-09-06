@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Meal List Boundaries",
   "short_name": "Meal Lists",
-  "description": "A local-first weekly planner that keeps every household's ingredients on the right shopping list.",
+  "description": "Make separate shopping lists for each home or pickup from one weekly meal plan.",
   "start_url": "/?source=installed&v=1",
   "scope": "/",
   "display": "standalone",

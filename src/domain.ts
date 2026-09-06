@@ -140,7 +140,7 @@ export function decodePayload(value: string): SharePayload {
   const binary = atob(normalized);
   const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
   const parsed = JSON.parse(new TextDecoder().decode(bytes)) as unknown;
-  if (!isSharePayload(parsed)) throw new Error('This handoff link is incomplete or invalid.');
+  if (!isSharePayload(parsed)) throw new Error('This shared link is incomplete or invalid.');
   return parsed;
 }
 

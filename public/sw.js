@@ -1,20 +1,23 @@
-const CACHE = 'meal-list-boundaries-shell-v4';
+const CACHE = 'meal-list-boundaries-shell-v5';
 const ASSETS = [
   '/',
   '/index.html',
   '/offline.html',
   '/offline.css',
+  '/404.html',
   '/manifest.webmanifest',
   '/legal.css',
   '/robots.txt',
   '/icons/leaf.svg',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
+  '/icons/apple-touch-icon.png',
   '/assets/boundary-field-guide-640.webp',
   '/assets/boundary-field-guide-1024.webp',
   '/assets/boundary-field-guide-640.avif',
   '/assets/boundary-field-guide-1024.avif',
   '/assets/boundary-field-guide-1024.jpg',
+  '/assets/meal-list-boundaries-social.jpg',
   '/privacy/',
   '/terms/'
 ];

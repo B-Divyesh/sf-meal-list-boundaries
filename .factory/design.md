@@ -59,8 +59,10 @@ Asset prompt derives exactly from this sheet, ending “no text, no watermark, n
 
 ## Image provenance
 
-The botanical hero will be generated for this product with the factory Azure OpenAI image deployment (`factory-image`) on 2026-08-28. It is original generated imagery and may be used with this product. The final reviewed prompt and tool parameters are stored beside the source asset. The footer discloses that the field-guide illustration is AI-generated.
+The botanical hero was generated for this product with the factory Azure OpenAI image deployment (`factory-image`) on 2026-08-28. It is original generated imagery and may be used with this product. The final reviewed prompt and tool parameters are stored beside the source asset. The footer discloses that the illustration is generated.
+
+The 1200 × 630 social image was composed on 2026-09-06 by cropping and resizing the reviewed source plate. It adds no new generated content, text, logos, or third-party material. The 180 px Apple touch icon is a resized derivative of the product’s hand-authored app mark.
 
 ## Product tier presentation
 
-The core two-boundary weekly handoff is complete and free. A quiet “Field Kit” section—not a modal—offers a one-time unlock for unlimited boundaries and reusable week templates. Price is displayed as `$12 one-time`, with the hosted Sociobot checkout and a paste-to-restore path. Data export, QR handoff, offline use, themes, accessibility, and privacy are never gated.
+The core two-place weekly planner is complete and free. A quiet “Field Kit” section—not a modal—offers unlimited places and reusable week templates for `$12 once`. Checkout is hosted by Sociobot, and Settings includes a paste-to-restore path. Data export, QR sharing, offline use, themes, accessibility, and privacy are never paid features.

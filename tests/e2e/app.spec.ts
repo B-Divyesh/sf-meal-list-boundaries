@@ -1,28 +1,34 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-test('creates two boundaries and keeps their lists separate', async ({ page }) => {
+async function streamText(stream: NodeJS.ReadableStream): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+test('@claim:list-separation creates separate lists and combines duplicates only within one list', async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
   await page.goto('/');
   await page.getByRole('button', { name: 'Open settings' }).click();
-  const settings = page.getByRole('dialog', { name: 'Boundaries & data' });
-  await settings.getByLabel('New boundary name').fill('Home');
-  await settings.getByRole('button', { name: 'Add boundary' }).click();
-  await page.getByRole('dialog', { name: 'Boundaries & data' }).getByLabel('New boundary name').fill('Cabin');
-  await page.getByRole('dialog', { name: 'Boundaries & data' }).getByRole('button', { name: 'Add boundary' }).click();
-  await expect(page.getByRole('dialog', { name: 'Boundaries & data' }).locator('input[value="Cabin"]')).toBeVisible();
-  await page.getByRole('dialog', { name: 'Boundaries & data' }).getByRole('button', { name: 'Done' }).click();
+  const settings = page.getByRole('dialog', { name: 'Places & data' });
+  await settings.getByLabel('New place name').fill('Home');
+  await settings.getByRole('button', { name: 'Add place' }).click();
+  await page.getByRole('dialog', { name: 'Places & data' }).getByLabel('New place name').fill('Cabin');
+  await page.getByRole('dialog', { name: 'Places & data' }).getByRole('button', { name: 'Add place' }).click();
+  await expect(page.getByRole('dialog', { name: 'Places & data' }).locator('input[value="Cabin"]')).toBeVisible();
+  await page.getByRole('dialog', { name: 'Places & data' }).getByRole('button', { name: 'Done' }).click();
 
   await page.getByRole('button', { name: 'Add meal on Monday' }).click();
   await page.getByRole('dialog', { name: 'Add to Monday' }).getByLabel('Meal name').fill('Pasta');
-  await page.getByRole('dialog', { name: 'Add to Monday' }).getByLabel('Ingredients, one per line').fill('Basil\n2 cans tomatoes');
+  await page.getByRole('dialog', { name: 'Add to Monday' }).getByLabel('Ingredients, one per line').fill('Basil\n basil \n2 cans tomatoes');
   await page.getByRole('dialog', { name: 'Add to Monday' }).getByRole('button', { name: 'Save meal' }).click();
 
   await page.getByRole('button', { name: 'Add meal on Tuesday' }).click();
   const mealDialog = page.getByRole('dialog', { name: 'Add to Tuesday' });
   await mealDialog.getByLabel('Meal name').fill('Cabin soup');
-  await mealDialog.getByLabel('Boundary').selectOption({ label: '◇ Cabin' });
+  await mealDialog.getByLabel('Shopping list').selectOption({ label: '◇ Cabin' });
   await mealDialog.getByLabel('Ingredients, one per line').fill('Basil\nBread');
   await mealDialog.getByRole('button', { name: 'Save meal' }).click();
 
@@ -32,10 +38,13 @@ test('creates two boundaries and keeps their lists separate', async ({ page }) =
   const sheets = page.locator('.list-sheet');
   await expect(sheets).toHaveCount(2);
   await expect(sheets.nth(0).getByText('Basil', { exact: true })).toBeVisible();
+  await expect(sheets.nth(0).getByText('× 2')).toBeVisible();
+  await expect(sheets.nth(0).getByText('Bread', { exact: true })).toHaveCount(0);
   await expect(sheets.nth(1).getByText('Basil', { exact: true })).toBeVisible();
+  await expect(sheets.nth(1).getByText('2 cans tomatoes', { exact: true })).toHaveCount(0);
 
   await sheets.nth(0).getByRole('button', { name: 'Show QR' }).click();
-  const qrDialog = page.getByRole('dialog', { name: 'Scan this boundary' });
+  const qrDialog = page.getByRole('dialog', { name: 'Scan to open this list' });
   await expect(qrDialog.locator('canvas')).toBeVisible();
   const shareUrl = await qrDialog.getByRole('button', { name: 'Copy link' }).getAttribute('data-url');
   expect(shareUrl).toContain('?share=');
@@ -80,13 +89,13 @@ test('@claim:local-only-data keeps a sample planning flow on the product origin'
   expect(requests.filter((url) => url.startsWith('http')).every((url) => new URL(url).origin === productOrigin)).toBe(true);
 });
 
-test('does not carry a gathered ingredient into the next week', async ({ page }) => {
+test('@claim:bought-state keeps bought status after reload without carrying it into next week', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Open settings' }).click();
-  const settings = page.getByRole('dialog', { name: 'Boundaries & data' });
-  await settings.getByLabel('New boundary name').fill('Home');
-  await settings.getByRole('button', { name: 'Add boundary' }).click();
-  await page.getByRole('dialog', { name: 'Boundaries & data' }).getByRole('button', { name: 'Done' }).click();
+  const settings = page.getByRole('dialog', { name: 'Places & data' });
+  await settings.getByLabel('New place name').fill('Home');
+  await settings.getByRole('button', { name: 'Add place' }).click();
+  await page.getByRole('dialog', { name: 'Places & data' }).getByRole('button', { name: 'Done' }).click();
 
   await page.getByRole('button', { name: 'Add meal on Monday' }).click();
   const firstMeal = page.getByRole('dialog', { name: 'Add to Monday' });
@@ -95,6 +104,9 @@ test('does not carry a gathered ingredient into the next week', async ({ page })
   await firstMeal.getByRole('button', { name: 'Save meal' }).click();
   await page.getByRole('button', { name: /Lists/ }).click();
   await page.getByRole('checkbox', { name: /Basil/ }).check();
+  await page.reload();
+  await page.getByRole('button', { name: /Lists/ }).click();
+  await expect(page.getByRole('checkbox', { name: /Basil/ })).toBeChecked();
 
   await page.getByRole('button', { name: 'Next week' }).click();
   await page.locator('[data-view="plan"]').click();
@@ -105,7 +117,7 @@ test('does not carry a gathered ingredient into the next week', async ({ page })
   await nextMeal.getByRole('button', { name: 'Save meal' }).click();
   await page.getByRole('button', { name: /Lists/ }).click();
 
-  await expect(page.getByText('0 of 1 gathered')).toBeVisible();
+  await expect(page.getByText('0 of 1 bought')).toBeVisible();
   await expect(page.getByRole('checkbox', { name: /Basil/ })).not.toBeChecked();
 });
 
@@ -121,9 +133,9 @@ test('keeps core action targets at least 44px at 390px', async ({ page }, testIn
   test.skip(testInfo.project.name !== 'mobile', 'mobile-only target-size check');
   await page.goto('/');
   await page.getByRole('button', { name: 'Open settings' }).click();
-  const settings = page.getByRole('dialog', { name: 'Boundaries & data' });
-  await settings.getByLabel('New boundary name').fill('Home');
-  await settings.getByRole('button', { name: 'Add boundary' }).click();
+  const settings = page.getByRole('dialog', { name: 'Places & data' });
+  await settings.getByLabel('New place name').fill('Home');
+  await settings.getByRole('button', { name: 'Add place' }).click();
   await expect(settings.getByRole('button', { name: 'Save' })).toHaveJSProperty('offsetHeight', 44);
   await expect(settings.getByRole('button', { name: 'Remove' })).toHaveJSProperty('offsetHeight', 44);
   await settings.getByRole('button', { name: 'Done' }).click();
@@ -144,7 +156,174 @@ test('@claim:offline-reload reloads the cached planner while offline', async ({ 
   await page.waitForTimeout(1000);
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByRole('heading', { name: /One week/ })).toBeVisible();
-  await expect(page.getByText(/Offline · changes stay here/)).toBeAttached();
+  await expect(page.getByRole('heading', { name: /Make separate shopping lists/ })).toBeVisible();
+  await expect(page.getByText(/Offline · changes stay on this device/)).toBeAttached();
   await context.setOffline(false);
+});
+
+test('@claim:single-list-sharing copies and opens only the selected shopping list', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'http://127.0.0.1:4173' });
+  await page.goto('/demo');
+  await page.getByRole('button', { name: /Lists/ }).click();
+  const home = page.locator('[data-boundary-sheet="demo-home"]');
+  await home.getByRole('button', { name: 'Copy', exact: true }).click();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toContain('Home');
+  expect(copied).toContain('2 cans tomatoes');
+  expect(copied).not.toContain('Bread');
+
+  await home.getByRole('button', { name: 'Show QR' }).click();
+  const qr = page.getByRole('dialog', { name: 'Scan to open this list' });
+  const shareUrl = await qr.getByRole('button', { name: 'Copy link' }).getAttribute('data-url');
+  const shared = await context.newPage();
+  await shared.goto(shareUrl!);
+  await expect(shared.getByRole('heading', { level: 1, name: /Home shopping list/ })).toBeVisible();
+  await expect(shared.getByText('2 cans tomatoes', { exact: true })).toBeVisible();
+  await expect(shared.getByText('Bread', { exact: true })).toHaveCount(0);
+  await shared.close();
+});
+
+test('@claim:csv-export downloads the selected shopping list as CSV', async ({ page }) => {
+  await page.goto('/demo');
+  await page.getByRole('button', { name: /Lists/ }).click();
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('[data-boundary-sheet="demo-home"]').getByRole('button', { name: 'CSV' }).click();
+  const download = await downloadPromise;
+  const contents = await streamText((await download.createReadStream())!);
+  expect(download.suggestedFilename()).toMatch(/^Home-\d{4}-\d{2}-\d{2}\.csv$/);
+  expect(contents.split('\n')[0]).toBe('item,count,bought');
+  expect(contents).toContain('"2 cans tomatoes",1,false');
+  expect(contents).not.toContain('Bread');
+});
+
+test('@claim:json-backup exports and imports the complete planner', async ({ page }) => {
+  await page.goto('/demo');
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: /Lists/ }).click();
+  await page.getByRole('button', { name: 'Export all data' }).click();
+  const backup = await downloadPromise;
+  const backupPath = await backup.path();
+  expect(backupPath).toBeTruthy();
+  const exported = JSON.parse(await streamText((await backup.createReadStream())!)) as { boundaries: unknown[]; meals: unknown[] };
+  expect(exported.boundaries).toHaveLength(2);
+  expect(exported.meals).toHaveLength(4);
+
+  await page.getByRole('button', { name: 'Start for real' }).click();
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.locator('#import-file').setInputFiles(backupPath!);
+  await expect(page.getByText('Pasta night')).toBeVisible();
+  await expect(page.getByText('Cabin soup')).toBeVisible();
+});
+
+test('@claim:selected-list-print sends only the chosen list to print', async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as typeof window & { printedLists?: string[] }).print = () => {
+      (window as typeof window & { printedLists?: string[] }).printedLists = [...document.querySelectorAll<HTMLElement>('[data-boundary-sheet]')]
+        .filter((sheet) => !sheet.classList.contains('print-hidden'))
+        .map((sheet) => sheet.querySelector('h3')?.textContent ?? '');
+    };
+  });
+  await page.goto('/demo');
+  await page.getByRole('button', { name: /Lists/ }).click();
+  await page.locator('[data-boundary-sheet="demo-home"]').getByRole('button', { name: 'Print' }).click();
+  await expect.poll(() => page.evaluate(() => (window as typeof window & { printedLists?: string[] }).printedLists)).toEqual(['Home']);
+});
+
+test('@claim:free-two-places keeps both free lists and blocks a third place', async ({ page }) => {
+  await page.goto('/demo');
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  const settings = page.getByRole('dialog', { name: 'Places & data' });
+  await expect(settings.locator('.boundary-settings li')).toHaveCount(2);
+  await settings.getByLabel('New place name').fill('Parents');
+  await settings.getByRole('button', { name: 'Add place' }).click();
+  await expect(settings.locator('.boundary-settings li')).toHaveCount(2);
+  await expect(page.getByText('The free planner includes two places. Field Kit adds more.')).toBeVisible();
+});
+
+test('@claim:field-kit-offer enables unlimited places and reusable templates with a valid license', async ({ page }) => {
+  await page.route('https://api.sociobot.in/api/v1/products/meal-list-boundaries/verify?*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ valid: true, reason: 'ok', expires_at: null }),
+  }));
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Field Kit costs $12 once' })).toBeVisible();
+  await page.goto('/?license=fixture-license');
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('sb_license_verdict:meal-list-boundaries') ?? '{}').valid)).toBe(true);
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  let settings = page.getByRole('dialog', { name: 'Places & data' });
+  await expect(settings.getByText('Field Kit active')).toBeVisible();
+  for (const name of ['Home', 'Cabin', 'Parents']) {
+    await settings.getByLabel('New place name').fill(name);
+    await settings.getByRole('button', { name: 'Add place' }).click();
+    settings = page.getByRole('dialog', { name: 'Places & data' });
+  }
+  await expect(settings.locator('.boundary-settings li')).toHaveCount(3);
+  await settings.getByRole('button', { name: 'Done' }).click();
+
+  await page.getByRole('button', { name: 'Add meal on Monday' }).click();
+  const meal = page.getByRole('dialog', { name: 'Add to Monday' });
+  await meal.getByLabel('Meal name').fill('Pasta night');
+  await meal.getByLabel('Ingredients, one per line').fill('Basil');
+  await meal.getByRole('button', { name: 'Save meal' }).click();
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  settings = page.getByRole('dialog', { name: 'Places & data' });
+  await settings.getByLabel('Template name').fill('School week');
+  await settings.getByRole('button', { name: 'Save this week' }).click();
+  settings = page.getByRole('dialog', { name: 'Places & data' });
+  await expect(settings.getByText(/School week/)).toBeVisible();
+  await settings.getByRole('button', { name: 'Done' }).click();
+  await page.getByRole('button', { name: 'Next week' }).click();
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('dialog', { name: 'Places & data' }).getByRole('button', { name: 'Apply' }).click();
+  await expect(page.getByText('Pasta night')).toBeVisible();
+});
+
+test('@claim:license-revocation keeps the free planner available after a license is revoked', async ({ page }) => {
+  await page.route('https://api.sociobot.in/api/v1/products/meal-list-boundaries/verify?*', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ valid: false, reason: 'revoked', expires_at: null }),
+  }));
+  await page.goto('/?license=revoked-fixture');
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('sb_license_verdict:meal-list-boundaries') ?? '{}').reason)).toBe('revoked');
+  await page.getByRole('button', { name: 'Open settings' }).click();
+  const settings = page.getByRole('dialog', { name: 'Places & data' });
+  await expect(settings.getByText('Optional one-time purchase')).toBeVisible();
+  await expect(settings.getByText('Field Kit active')).toHaveCount(0);
+  await settings.getByLabel('New place name').fill('Home');
+  await settings.getByRole('button', { name: 'Add place' }).click();
+  await expect(page.getByRole('dialog', { name: 'Places & data' }).locator('input[value="Home"]')).toBeVisible();
+});
+
+test('demo has no axe violations in light or dark theme', async ({ page }) => {
+  await page.goto('/demo');
+  expect((await new AxeBuilder({ page: page as never }).analyze()).violations).toEqual([]);
+  await page.getByRole('button', { name: 'Switch color theme' }).click();
+  expect((await new AxeBuilder({ page: page as never }).analyze()).violations).toEqual([]);
+});
+
+test('routes expose their own titles, metadata, shell, and recovery page', async ({ page }) => {
+  for (const route of [
+    { path: '/', title: 'Meal List Boundaries — Separate shopping lists', canonical: '/' },
+    { path: '/demo', title: 'Demo — Meal List Boundaries', canonical: '/demo' },
+    { path: '/privacy/', title: 'Privacy — Meal List Boundaries', canonical: '/privacy/' },
+    { path: '/terms/', title: 'Terms — Meal List Boundaries', canonical: '/terms/' },
+    { path: '/404.html', title: 'Page not found — Meal List Boundaries', canonical: '/404.html' },
+    { path: '/offline.html', title: 'Offline — Meal List Boundaries', canonical: '/offline.html' },
+  ]) {
+    await page.goto(route.path);
+    await expect(page).toHaveTitle(route.title);
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `https://meal-list-boundaries.sociobot.in${route.canonical}`);
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /meal-list-boundaries-social\.jpg$/);
+    await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute('href', '/icons/apple-touch-icon.png');
+    await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible();
+    await expect(page.getByText(/Built by Param Factory/)).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+  }
+  await page.goto('/404.html');
+  await expect(page.getByRole('heading', { level: 1, name: 'This page does not exist' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Open the meal planner' })).toHaveAttribute('href', '/');
 });

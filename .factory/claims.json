@@ -1,23 +1,86 @@
 [
   {
     "id": "demo-sandbox",
-    "claim": "Try the planner with sample data without saving it to your real planner",
-    "where": "landing action and demo banner",
+    "claim": "Try four sample meals without saving changes to your real planner",
+    "where": "first-screen action, demo banner, README",
     "test": "npm run test:e2e -- --grep @claim:demo-sandbox",
-    "sandbox": "fresh browser context; open /demo; confirm sample meals; select Start for real; confirm the real planner is empty"
+    "sandbox": "fresh browser context; open /demo; confirm sample meals; leave demo; confirm the real planner is empty"
   },
   {
     "id": "offline-reload",
-    "claim": "Reload the planner offline after the first visit",
-    "where": "README",
+    "claim": "Works offline after the first visit",
+    "where": "first-screen facts, README",
     "test": "npm run test:e2e -- --grep @claim:offline-reload",
-    "sandbox": "fresh browser context; wait for the service worker; set the context offline; reload; assert the planner and offline state"
+    "sandbox": "fresh browser context; open /demo; wait for service-worker control; go offline; reload; confirm the sample and offline state"
   },
   {
     "id": "local-only-data",
-    "claim": "Meal and boundary data stay on your device",
-    "where": "footer, README, privacy page",
+    "claim": "Meal plans stay on this device during planning",
+    "where": "first-screen facts, privacy section, privacy page, README",
     "test": "npm run test:e2e -- --grep @claim:local-only-data",
-    "sandbox": "fresh browser context; run a sample planning flow at /demo; intercept every HTTP request; assert every request is same-origin"
+    "sandbox": "fresh browser context; record every request during a sample edit; assert every request uses the product origin"
+  },
+  {
+    "id": "list-separation",
+    "claim": "Creates separate shopping lists and combines duplicate ingredient lines only within the same list",
+    "where": "first screen, list view, how-it-works section, README",
+    "test": "npm run test:e2e -- --grep @claim:list-separation",
+    "sandbox": "fresh real planner; create Home and Cabin meals with shared and unique ingredients; inspect both generated lists"
+  },
+  {
+    "id": "bought-state",
+    "claim": "Bought status survives reload and stays separate for each week",
+    "where": "shopping-list checkboxes, README",
+    "test": "npm run test:e2e -- --grep @claim:bought-state",
+    "sandbox": "fresh real planner; mark Basil bought; reload; add Basil in the next week; compare both weeks"
+  },
+  {
+    "id": "single-list-sharing",
+    "claim": "Copy and QR links contain only the selected shopping list",
+    "where": "shopping-list actions, how-it-works section, privacy page, README",
+    "test": "npm run test:e2e -- --grep @claim:single-list-sharing",
+    "sandbox": "fresh /demo context; copy Home; inspect clipboard; open its QR URL; confirm Cabin-only items are absent"
+  },
+  {
+    "id": "csv-export",
+    "claim": "Downloads one selected shopping list as CSV",
+    "where": "shopping-list CSV action, README",
+    "test": "npm run test:e2e -- --grep @claim:csv-export",
+    "sandbox": "fresh /demo context; download Home CSV; verify its header, Home item, and absence of Cabin-only items"
+  },
+  {
+    "id": "json-backup",
+    "claim": "Exports and imports the complete planner as JSON",
+    "where": "data settings, list toolbar, README",
+    "test": "npm run test:e2e -- --grep @claim:json-backup",
+    "sandbox": "fresh /demo context; export the populated planner; leave demo; import the file; confirm all sample meals return"
+  },
+  {
+    "id": "selected-list-print",
+    "claim": "Print sends only the selected shopping list",
+    "where": "shopping-list Print action, how-it-works section, README",
+    "test": "npm run test:e2e -- --grep @claim:selected-list-print",
+    "sandbox": "fresh /demo context; intercept print; choose Home; assert only the Home list is present in the print state"
+  },
+  {
+    "id": "free-two-places",
+    "claim": "The free planner supports two places",
+    "where": "first-screen facts, Field Kit section, settings, terms, README",
+    "test": "npm run test:e2e -- --grep @claim:free-two-places",
+    "sandbox": "fresh /demo context with Home and Cabin; try to add Parents; confirm both sample places remain and no third is added"
+  },
+  {
+    "id": "field-kit-offer",
+    "claim": "Field Kit costs $12 once and adds unlimited places and reusable week templates",
+    "where": "first-screen facts, Field Kit section, settings, terms, README",
+    "test": "npm run test:e2e -- --grep @claim:field-kit-offer",
+    "sandbox": "fresh context; assert the displayed offer; use a recorded valid verification response; add three places; save and apply a template"
+  },
+  {
+    "id": "license-revocation",
+    "claim": "A revoked Field Kit license stops paid features while the free planner remains available",
+    "where": "Field Kit settings, privacy page, terms",
+    "test": "npm run test:e2e -- --grep @claim:license-revocation",
+    "sandbox": "fresh context; use a recorded revoked verification response; confirm paid controls are absent; add a place with the free planner"
   }
 ]
